@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAI Analysis with LLM</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-brain"></i> XAI Analysis with LLM</h1>
+            <p>Analyze root failure cause of XAI techniques using Large Language Models</p>
+        </header>
+
+        <main>
+            <div class="top-section">
+                <!-- Left: Text Editor -->
+                <div class="editor-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-edit"></i> Prompt Editor</h2>
+                        <div class="editor-controls">
+                            <button id="clearPrompt" class="btn-secondary">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                            <button id="loadTemplate" class="btn-secondary">
+                                <i class="fas fa-file-alt"></i> Load Template
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="promptEditor" placeholder="Enter your analysis prompt here...&#10;&#10;Example:&#10;Analyze the discrepancy between the ground truth bounding box and the XAI-generated bounding box. Consider factors like:&#10;- Model architecture differences&#10;- XAI technique limitations&#10;- Image characteristics&#10;- Potential improvements"></textarea>
+                </div>
+
+                <!-- Right: LLM Response -->
+                <div class="response-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-robot"></i> LLM Analysis</h2>
+                        <div class="response-controls">
+                            <button id="copyResponse" class="btn-secondary">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                            <button id="clearResponse" class="btn-secondary">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    <div id="llmResponse" class="response-content">
+                        <div class="placeholder">
+                            <i class="fas fa-robot"></i>
+                            <p>LLM analysis will appear here after submission</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-section">
+                <!-- Image Upload Section -->
+                <div class="image-upload-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-images"></i> Image Upload</h2>
+                    </div>
+                    
+                    <div class="image-upload-container">
+                        <div class="image-upload-group">
+                            <h3>Original Image</h3>
+                            <div class="upload-area" id="originalImageUpload">
+                                <div class="upload-placeholder">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Click to upload original image</p>
+                                    <span>Supports: JPG, PNG, GIF (Max 5MB)</span>
+                                </div>
+                                <input type="file" id="originalImageInput" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="image-preview" id="originalImagePreview" style="display: none;">
+                                <img id="originalImageDisplay" alt="Original Image">
+                                <button type="button" class="remove-image" onclick="removeImage('original')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="image-upload-group">
+                            <h3>XAI Generated Heatmap</h3>
+                            <div class="upload-area" id="heatmapImageUpload">
+                                <div class="upload-placeholder">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Click to upload XAI heatmap</p>
+                                    <span>Supports: JPG, PNG, GIF (Max 5MB)</span>
+                                </div>
+                                <input type="file" id="heatmapImageInput" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="image-preview" id="heatmapImagePreview" style="display: none;">
+                                <img id="heatmapImageDisplay" alt="XAI Heatmap">
+                                <button type="button" class="remove-image" onclick="removeImage('heatmap')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bounding Box Coordinates Input -->
+                <div class="bbox-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-vector-square"></i> Bounding Box Coordinates</h2>
+                    </div>
+                    
+                    <div class="bbox-inputs">
+                        <div class="bbox-group">
+                            <h3>Ground Truth Bounding Box</h3>
+                            <div class="coordinate-inputs">
+                                <div class="input-group">
+                                    <label for="gtX1">X1:</label>
+                                    <input type="number" id="gtX1" placeholder="0" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label for="gtY1">Y1:</label>
+                                    <input type="number" id="gtY1" placeholder="0" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label for="gtX2">X2:</label>
+                                    <input type="number" id="gtX2" placeholder="0" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label for="gtY2">Y2:</label>
+                                    <input type="number" id="gtY2" placeholder="0" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bbox-group">
+                            <h3>XAI Generated Bounding Box</h3>
+                            <div class="coordinate-inputs">
+                                <div class="input-group">
+                                    <label for="xaiX1">X1:</label>
+                                    <input type="number" id="xaiX1" placeholder="0" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label for="xaiY1">Y1:</label>
+                                    <input type="number" id="xaiY1" placeholder="0" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label for="xaiX2">X2:</label>
+                                    <input type="number" id="xaiX2" placeholder="0" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label for="xaiY2">Y2:</label>
+                                    <input type="number" id="xaiY2" placeholder="0" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Inputs -->
+                    <div class="additional-inputs">
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label for="xaiTechnique">XAI Technique:</label>
+                                <select id="xaiTechnique">
+                                    <option value="">Select XAI Technique</option>
+                                    <option value="gradcam">Grad-CAM</option>
+                                    <option value="gradcam++">Grad-CAM++</option>
+                                    <option value="lime">LIME</option>
+                                    <option value="eigencam">Eigen-CAM</option>
+                                    <option value="guidedgradcam">Guided Grad-CAM</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="modelArchitecture">Model Architecture:</label>
+                                <select id="modelArchitecture">
+                                    <option value="">Select Model</option>
+                                    <option value="resnet50">ResNet-50</option>
+                                    <option value="unet">U-Net</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="dataset">Dataset:</label>
+                                <select id="dataset">
+                                    <option value="">Select Dataset</option>
+                                    <option value="nih-chest-xray">NIH Chest X-Ray</option>
+                                    <option value="kvasir-seg">Kvasir-Seg</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="submit-section">
+                        <button id="submitAnalysis" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> Analyze with LLM
+                        </button>
+                        <div id="loadingIndicator" class="loading hidden">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Analyzing...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
