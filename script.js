@@ -203,90 +203,105 @@ function prepareAnalysisData() {
 }
 
 async function simulateLLMAnalysis(data) {
-    // This is a simulation - replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    setLoadingState(true);
     
-    // Calculate some basic metrics
-    const gtArea = Math.abs((data.groundTruth.x2 - data.groundTruth.x1) * (data.groundTruth.y2 - data.groundTruth.y1));
-    const xaiArea = Math.abs((data.xaiGenerated.x2 - data.xaiGenerated.x1) * (data.xaiGenerated.y2 - data.xaiGenerated.y1));
-    const areaDiff = Math.abs(gtArea - xaiArea);
-    const areaDiffPercent = (areaDiff / gtArea) * 100;
+    try {
+        // Make real API call to our backend
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        setLoadingState(false);
+        
+        // Format the response for display
+        return formatAnalysisResponse(result.analysis, data);
+        
+    } catch (error) {
+        setLoadingState(false);
+        console.error('API Error:', error);
+        showNotification(`Analysis failed: ${error.message}`, 'error');
+        
+        // Fallback to simulated response if API fails
+        return generateFallbackResponse(data);
+    }
+}
+
+function formatAnalysisResponse(analysis, data) {
+    // Convert markdown-style response to HTML
+    const formattedAnalysis = analysis
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
     
-    // Calculate center points
-    const gtCenterX = (data.groundTruth.x1 + data.groundTruth.x2) / 2;
-    const gtCenterY = (data.groundTruth.y1 + data.groundTruth.y2) / 2;
-    const xaiCenterX = (data.xaiGenerated.x1 + data.xaiGenerated.x2) / 2;
-    const xaiCenterY = (data.xaiGenerated.y1 + data.xaiGenerated.y2) / 2;
-    const centerDistance = Math.sqrt(Math.pow(gtCenterX - xaiCenterX, 2) + Math.pow(gtCenterY - xaiCenterY, 2));
+    return `
+<div class="analysis-response">
+    <div class="analysis-header">
+        <h3>🔍 Claude AI Analysis</h3>
+        <div class="analysis-meta">
+            <span class="timestamp">${new Date().toLocaleString()}</span>
+        </div>
+    </div>
     
-    return `# XAI Analysis Report
+    <div class="analysis-content">
+        ${formattedAnalysis}
+    </div>
+</div>`;
+}
 
-## Executive Summary
-Analysis of ${data.metadata.xaiTechnique} performance on ${data.metadata.dataset} using ${data.metadata.modelArchitecture} architecture.
+function generateFallbackResponse(data) {
+    const { groundTruth, xaiGenerated, metadata } = data;
+    
+    // Calculate IoU (Intersection over Union)
+    const intersection = calculateIoU(groundTruth, xaiGenerated);
+    const union = calculateUnion(groundTruth, xaiGenerated);
+    const iou = intersection / union;
+    
+    return `
+<div class="analysis-response">
+    <div class="analysis-header">
+        <h3>⚠️ Fallback Analysis (API Unavailable)</h3>
+        <div class="analysis-meta">
+            <span class="severity ${iou < 0.3 ? 'high' : iou < 0.6 ? 'medium' : 'low'}">IoU: ${iou.toFixed(3)}</span>
+        </div>
+    </div>
+    
+    <div class="analysis-content">
+        <p><strong>Note:</strong> The Claude API is currently unavailable. This is a basic analysis based on coordinate comparison.</p>
+        <p>The IoU score of <strong>${iou.toFixed(3)}</strong> indicates ${iou > 0.7 ? 'good' : iou > 0.5 ? 'moderate' : 'poor'} overlap between predicted and actual regions.</p>
+        <p>Please check your API configuration and try again for a comprehensive analysis.</p>
+    </div>
+</div>`;
+}
 
-## Quantitative Analysis
+function calculateIoU(box1, box2) {
+    const x1 = Math.max(box1.x1, box2.x1);
+    const y1 = Math.max(box1.y1, box2.y1);
+    const x2 = Math.min(box1.x2, box2.x2);
+    const y2 = Math.min(box1.y2, box2.y2);
+    
+    if (x2 <= x1 || y2 <= y1) return 0;
+    
+    const intersection = (x2 - x1) * (y2 - y1);
+    return intersection;
+}
 
-### Bounding Box Metrics
-- **Ground Truth Area**: ${gtArea.toFixed(2)} square units
-- **XAI Generated Area**: ${xaiArea.toFixed(2)} square units
-- **Area Difference**: ${areaDiff.toFixed(2)} square units (${areaDiffPercent.toFixed(1)}% difference)
-- **Center Point Distance**: ${centerDistance.toFixed(2)} units
-
-### Coordinate Comparison
-**Ground Truth**: (${data.groundTruth.x1}, ${data.groundTruth.y1}) to (${data.groundTruth.x2}, ${data.groundTruth.y2})
-**XAI Generated**: (${data.xaiGenerated.x1}, ${data.xaiGenerated.y1}) to (${data.xaiGenerated.x2}, ${data.xaiGenerated.y2})
-
-## Qualitative Analysis
-
-### Potential Discrepancy Factors
-
-1. **XAI Technique Limitations**
-   - ${data.metadata.xaiTechnique} may struggle with complex spatial relationships
-   - Gradient-based methods can be sensitive to model architecture choices
-   - Localization accuracy varies based on feature map resolution
-
-2. **Model Architecture Impact**
-   - ${data.metadata.modelArchitecture} architecture characteristics affect XAI performance
-   - Different layer structures produce varying quality explanations
-   - Skip connections and residual blocks influence gradient flow
-
-3. **Dataset-Specific Considerations**
-   - ${data.metadata.dataset} characteristics may affect XAI technique effectiveness
-   - Image resolution and annotation quality impact results
-   - Domain-specific features may not be well-captured by current XAI methods
-
-## Technical Recommendations
-
-### Immediate Improvements
-1. **Try Alternative XAI Techniques**
-   - Consider ${getAlternativeTechniques(data.metadata.xaiTechnique)}
-   - Experiment with ensemble methods combining multiple XAI approaches
-
-2. **Model Architecture Adjustments**
-   - Fine-tune attention mechanisms for better localization
-   - Consider adding auxiliary tasks for improved feature learning
-   - Implement multi-scale feature fusion
-
-3. **Preprocessing Enhancements**
-   - Normalize input images consistently
-   - Apply data augmentation techniques
-   - Consider resolution-specific preprocessing
-
-### Long-term Strategies
-1. **Research Directions**
-   - Investigate attention-based XAI methods
-   - Explore self-supervised learning for better feature representations
-   - Consider developing domain-specific XAI techniques
-
-2. **Evaluation Framework**
-   - Implement comprehensive evaluation metrics
-   - Create benchmark datasets for XAI performance
-   - Develop automated quality assessment tools
-
-## Conclusion
-The observed discrepancy (${areaDiffPercent.toFixed(1)}% area difference) suggests that while ${data.metadata.xaiTechnique} provides useful insights, there's room for improvement in localization accuracy. The ${centerDistance.toFixed(2)} unit center distance indicates moderate spatial alignment issues that should be addressed through the recommended improvements.
-
-**Next Steps**: Implement the suggested alternative techniques and architectural modifications to improve XAI performance and achieve better alignment with ground truth annotations.`;
+function calculateUnion(box1, box2) {
+    const area1 = Math.abs((box1.x2 - box1.x1) * (box1.y2 - box1.y1));
+    const area2 = Math.abs((box2.x2 - box2.x1) * (box2.y2 - box2.y1));
+    const intersection = calculateIoU(box1, box2);
+    
+    return area1 + area2 - intersection;
 }
 
 function getAlternativeTechniques(currentTechnique) {
