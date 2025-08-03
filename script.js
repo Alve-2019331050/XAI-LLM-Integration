@@ -32,43 +32,13 @@ const originalImageUpload = document.getElementById('originalImageUpload');
 const heatmapImageUpload = document.getElementById('heatmapImageUpload');
 
 // Sample prompt template
-const promptTemplate = `Analyze the discrepancy between the ground truth bounding box and the XAI-generated bounding box for the given coordinates.
+const promptTemplate = `You are a very good agent who analyze and find root cause of failures in Explainable Artificial Intelligence(XAI) technique.
 
-Context:
-- XAI Technique: {xaiTechnique}
-- Model Architecture: {modelArchitecture}
-- Dataset: {dataset}
+A deep learning model (Resnet-50) was applied to predict a chest x-ray image of shape 224 x 224. The model was initially trained on NIH Chest x-ray dataset. Resnet-50 predicted the image correctly as 'Atelactasis', one of the 14 possible labels in that dataset with a probability of 0.345. After that some XAI techniques were applied to see the area of the image the model focused on. After comparing the bounding box of XAI generated heatmaps with bounding box of expert doctors provided ground truth, it was seen that XAI techniques generated bounding box mostly misalign with ground truth.
 
-Ground Truth Bounding Box: ({gtX1}, {gtY1}) to ({gtX2}, {gtY2})
-XAI Generated Bounding Box: ({xaiX1}, {xaiY1}) to ({xaiX2}, {xaiY2})
+Input: You will be provided with 2 images - the original x ray image and the XAI generated heatmap superimposed over original image. You will also be provided with the bounding box coordinates of both ground truth and xai generated.
 
-Please provide a comprehensive analysis covering:
-
-1. **Quantitative Analysis:**
-   - Calculate IoU (Intersection over Union) between the bounding boxes
-   - Measure the center point distance
-   - Analyze the area difference
-
-2. **Qualitative Analysis:**
-   - Identify potential reasons for the discrepancy
-   - Consider the limitations of the specific XAI technique
-   - Evaluate the impact of model architecture on XAI performance
-
-3. **Technical Factors:**
-   - How the XAI technique works and its inherent limitations
-   - Model-specific considerations (ResNet-50 vs U-Net)
-   - Dataset characteristics that might affect XAI performance
-
-4. **Recommendations:**
-   - Suggest improvements for better XAI performance
-   - Alternative XAI techniques that might work better
-   - Model architecture modifications if applicable
-
-5. **Research Insights:**
-   - Relate findings to existing literature on XAI limitations
-   - Discuss the trade-off between model performance and explainability
-
-Please provide specific, actionable insights that can help improve the XAI technique's alignment with ground truth annotations.`;
+Output: You need to provide one line specifying the main reason behind the discrepancy between these bounding boxes. Don't give general cause. Be specific and analyze the provided instances. Provide actionable root cause of failure in active voice. Don't assume something of your own.`;
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
